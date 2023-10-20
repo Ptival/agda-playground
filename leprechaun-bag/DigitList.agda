@@ -34,27 +34,15 @@ shiftL {suc _} [] = [ # 0 ]
 -- shiftL (d ∷ []) = d ∷ [ # 0 ]
 shiftL (d ∷ ds) = d ∷ shiftL ds
 
-bag : {b : ℕ} → .{{NonZero b}} → Digits b → Digits b
-bag {suc zero} ds = # 0 ∷ ds -- in base 1, things are quite degenerate
-bag {suc (suc _)} [] = [ #_ 1 ]
-bag {suc (suc _)} (zero ∷ ds) = bag ds
-bag b@{suc (suc _)} (d ∷ ds) with toℕ d + 1 <? b
-... | yes y = # (toℕ d + 1) ∷ ds -- TODO: convince Agda
-... | no n = # 1 ∷ shiftL ds
-
 Dtoℕ : {b : ℕ} → Digits b → ℕ
 Dtoℕ [] = 0
-Dtoℕ (d ∷ []) = toℕ d
 Dtoℕ {b} (d ∷ ds) = toℕ d * b ^ (length ds) + Dtoℕ ds
-
-predBase : (b : ℕ) → .{{NonZero b}} → ℕ
-predBase (suc b) = b
 
 -- (d + 1) × b^n + rest ≡ b^n + (d * b^n) + rest
 Dtoℕ-suc :
   {b↓ : ℕ} → (d : Fin b↓) → (ds : Digits (suc b↓)) →
   Dtoℕ {suc b↓} (suc d ∷ ds) ≡ suc b↓ ^ length ds + Dtoℕ {suc b↓} (inject₁ d ∷ ds)
-Dtoℕ-suc d [] = cong suc (sym (toℕ-inject₁ _))
+Dtoℕ-suc d [] = {!   !} -- cong suc (sym (toℕ-inject₁ _))
 Dtoℕ-suc {b↓} d ds@(_ ∷ _) =
   begin
     Dtoℕ {suc b↓} (suc d ∷ ds)
@@ -74,17 +62,6 @@ Dtoℕ-suc {b↓} d ds@(_ ∷ _) =
     suc b↓ ^ length ds + Dtoℕ {suc b↓} (inject₁ d ∷ ds)
   ∎
   where open ≡-Reasoning
-
-thirteen : Digits 3
-thirteen = # 1 ∷ # 1 ∷ # 1 ∷ []
-
-check-13 = Dtoℕ thirteen
-check-bag-13 = Dtoℕ (bag thirteen)
-
-two : Digits 3
-two = [ # 2 ]
-
-check-bag-2 = Dtoℕ (bag two)
 
 zeroFin : {b : ℕ} → .{{NonZero b}} → Fin b
 zeroFin {suc b↓} = zero {b↓}
@@ -107,6 +84,29 @@ Dtoℕ-leading-0 {suc _} (x ∷ ds) = refl
   ∎
   where open ≤-Reasoning
 
+-- *** Now leprechaun bag proper: ***
+
+bag : {b : ℕ} → .{{NonZero b}} → Digits b → Digits b
+bag {suc zero} ds = # 0 ∷ ds -- in base 1, things are quite degenerate
+bag {suc (suc _)} [] = [ #_ 1 ]
+bag {suc (suc _)} (zero ∷ ds) = bag ds
+bag b@{suc (suc _)} (d ∷ ds) with toℕ d + 1 <? b
+... | yes y = # (toℕ d + 1) ∷ ds -- TODO: convince Agda
+... | no n = # 1 ∷ shiftL ds
+
+module Testing-Leprechaun where
+
+  thirteen : Digits 3
+  thirteen = # 1 ∷ # 1 ∷ # 1 ∷ []
+
+  check-13 = Dtoℕ thirteen
+  check-bag-13 = Dtoℕ (bag thirteen)
+
+  two : Digits 3
+  two = [ # 2 ]
+
+  check-bag-2 = Dtoℕ (bag two)
+
 mono-3 : (m n : Digits 3) → Dtoℕ m < Dtoℕ n → Dtoℕ (bag m) < Dtoℕ (bag n)
 -- This may be much easier without doing much pattern-match on n?
 mono-3 [] (zero ∷ ns) m<n = mono-3 [] ns (<-≤-trans m<n (≤-reflexive (Dtoℕ-leading-0 ns)))
@@ -128,7 +128,20 @@ mono-3 (zero ∷ ms) (zero ∷ ns) m<n =
 
 mono-3 (zero ∷ ms) (suc n ∷ ns) m<n = {!   !}
 mono-3 (suc m ∷ ms) (zero ∷ ns) m<n = {!   !}
-mono-3 (suc m ∷ ms) (suc n ∷ ns) m<n = {!   !}
+mono-3 (suc m ∷ ms) (n ∷ ns) m<n with toℕ (suc (suc m)) + 1 <? 3 | suc (toℕ m + 1) <? 3
+... | yes y | yes z = {!   !}
+  -- let foo = mono-3 ms ns m<n
+  -- in {!   !}
+  -- begin
+  --   -- suc (Dtoℕ (# (toℕ (suc m) + 1) ∷ ms))
+  --   -- suc (Dtoℕ (bag (suc m ∷ ms)))
+  --   {!   !}
+  --   ≡⟨ {! refl  !} ⟩
+  --   {!   !} -- suc (Dtoℕ (# (toℕ (suc m) + 1) ∷ ms))
+  --   <⟨ {!   !} ⟩
+  --   Dtoℕ (bag (suc n ∷ ns))
+  -- ∎
+  -- where open ≤-Reasoning
   -- begin
   --   {!   !}
   --   <⟨ {!   !} ⟩ {!   !}
